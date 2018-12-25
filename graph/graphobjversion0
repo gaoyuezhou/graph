@@ -1,0 +1,374 @@
+package graph;
+
+/* See restrictions in Graph.java. */
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+
+/** A partial implementation of Graph containing elements common to
+ *  directed and undirected graphs.
+ *
+ *  @author Gaoyue Zhou
+ */
+abstract class GraphObj extends Graph {
+
+    ArrayList<Integer> vertices;
+    ArrayList<Edge> edges;
+    /** A new, empty Graph. */
+    GraphObj() {
+        // FIXME
+        vertices = new ArrayList<>();
+        edges = new ArrayList<>();
+    }
+
+    @Override
+    public int vertexSize() {
+        // FIXME
+        return vertices.size();
+    }
+
+    @Override
+    public int maxVertex() {
+        // FIXME
+        int max = 0;
+        for(int i = 0; i < vertices.size(); i++){
+            int current = vertices.get(i);
+            if(current > max){
+                max = current;
+            }
+        }
+        return max;
+    }
+
+    @Override
+    public int edgeSize() {
+        // FIXME
+        return edges.size();
+    }
+
+    @Override
+    public abstract boolean isDirected();
+
+    @Override
+    public int outDegree(int v) {
+        // FIXME [v, *]  QUESTION: undirected graph self-edges out/in degree??? 2 or 1? currently 2
+        assert(vertices.contains(v));
+        int count = 0;
+        for(int i = 0; i < edges.size(); i++){
+            Edge currentEdge = edges.get(i);
+            for(int j = 0; j < currentEdge.info.length; j++){
+                if(currentEdge.info[j][0] == v){
+                    count +=1;
+                }
+            }
+        }
+        return count;
+    }
+
+    @Override
+    public int inDegree(int v){   //caution: used to be abstract.............
+        assert(vertices.contains(v));
+        int count = 0;
+        for(int i = 0; i < edges.size(); i++){
+            Edge currentEdge = edges.get(i);
+            for(int j = 0; j < currentEdge.info.length; j++){
+                if(currentEdge.info[j][1] == v){
+                    count +=1;
+                }
+            }
+        }
+        return count;
+    }
+
+    @Override
+    public boolean contains(int u) {
+        // FIXME
+        return vertices.contains(u);
+    }
+
+    @Override
+    public boolean contains(int u, int v) {
+        // FIXME
+        int[] edge = {u, v};
+        for(int i = 0; i < edges.size(); i++){
+            Edge current = edges.get(i);
+            for(int j = 0; j < current.info.length; j++){
+                if(Arrays.equals(current.info[j], edge)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public int add() {
+        // FIXME vertices starts with 1, new vertex fill gap
+        if(vertices.size() == 0){
+            vertices.add(1);
+            return 1;
+        }
+
+        int upperBound = maxVertex();
+        boolean[] ifExist = new boolean[upperBound + 1];
+        for (int i = 0; i < vertices.size(); i++) {
+            ifExist[vertices.get(i)] = true;
+        }
+
+        int pos = 1;
+        while (pos < ifExist.length){
+            if(!ifExist[pos]){
+                int newVertex = pos;
+                vertices.add(pos);
+                return newVertex;
+            }
+            pos+=1;
+        }
+
+        int nvertex = maxVertex() + 1;
+        vertices.add(nvertex);
+        return nvertex;
+    }
+
+    @Override
+    public int add(int u, int v) {
+        // FIXME  "Assume U, V are my vertices"???????? really?????????
+        // FIXME  CAUTION: ISDIRECTED() LEGAL TO USE HERE???????
+        if(contains(u, v)){
+            return edgeId(u, v);
+        }
+
+        Edge current;
+        if (isDirected()){
+            current = new Edge(true, u, v);
+        } else {
+            current = new Edge(false, u, v);
+        }
+        edges.add(current);
+        return current.id;
+    }
+
+    @Override
+    public void remove(int v) {
+        vertices.remove((Integer) v);
+        ArrayList<Edge> edgeCopy = new ArrayList<>(edges);
+        for(int i = 0; i < edgeCopy.size(); i++){
+            Edge currentEdge = edgeCopy.get(i);
+            if(currentEdge.edgeEnds[0] == v
+                    || currentEdge.edgeEnds[1] == v){
+                edges.remove(currentEdge);
+            }
+        }
+        // FIXME
+    }
+
+    @Override
+    public void remove(int u, int v) {
+        int[] currentEdge = {u, v};
+        for(int i = 0; i < edges.size(); i++){
+            Edge current = edges.get(i);
+            for(int j = 0; j < current.info.length; j++){
+                if(Arrays.equals(current.info[j], currentEdge)) {
+                    edges.remove(current);
+                }
+            }
+        }
+        // FIXME
+    }
+
+    @Override
+    public Iteration<Integer> vertices() {
+        // FIXME
+        return new VertexIteration(vertices);
+    }
+
+    @Override
+    public Iteration<Integer> successors(int v) {
+        // FIXME
+        return new SpecificVertexIteration(0, edges, v);
+    }
+
+    @Override
+    public Iteration<Integer> predecessors(int v){//caution: used to be abstract
+        return new SpecificVertexIteration(1, edges, v);
+    }
+
+    @Override
+    public Iteration<int[]> edges() {
+        EdgeIteration it = new EdgeIteration(edges);
+        // FIXME
+        return it;
+    }
+
+    @Override
+    protected void checkMyVertex(int v) {
+        // FIXME
+    }
+
+    @Override
+    protected int edgeId(int u, int v) {
+        // FIXME
+        int[] currentEdge = {u, v};
+        for(int i = 0; i < edges.size(); i++){
+            Edge current = edges.get(i);
+            for(int j = 0; j < current.info.length; j++){
+                if(Arrays.equals(current.info[j], currentEdge)) {
+                    return current.id;
+                }
+            }
+        }
+        return 0;
+    }
+
+    // FIXME
+
+    public class VertexIteration extends Iteration<Integer>{
+        ArrayList<Integer> myVertices;
+        int index;
+
+        VertexIteration(ArrayList<Integer> vertices){
+            this.myVertices = vertices;
+            index = 0;
+        }
+
+        @Override
+        public boolean hasNext(){
+            return index < myVertices.size();
+        }
+
+        @Override
+        public Integer next(){
+            assert(hasNext());
+            Integer wanted = myVertices.get(index);
+            index += 1;
+            return wanted;
+        }
+    }
+
+    public class SpecificVertexIteration extends Iteration<Integer>{
+        int posCared;
+        ArrayList<Edge> myEdges;
+        int index;
+        int targetVertex;
+
+        SpecificVertexIteration(int posCared, ArrayList<Edge> edges,
+                                int targetVertex){
+            this.posCared = posCared;  //0 if find successor, 1 if for predecessor
+            this.myEdges = edges;
+            index = -1;
+            this.targetVertex = targetVertex;
+            update();
+        }
+
+        @Override
+        public Integer next(){
+            assert(hasNext());
+            Integer wanted = myEdges.get(index).theOtherVertex(targetVertex);
+            update();
+            return wanted;
+        }
+
+        @Override
+        public boolean hasNext(){
+            if(isLegal(index)){
+                return true;
+            } else{
+                update();
+                return isLegal(index);
+            }
+        }
+
+        public boolean isLegal(int newIndex){
+            if(newIndex < myEdges.size()){
+                for(int i = newIndex; i < myEdges.size(); i++){
+                    Edge currentEdge = myEdges.get(i);
+                    for(int j = 0; j < currentEdge.info.length; j++){
+                        if(currentEdge.info[j][posCared] == targetVertex){
+                            index = i;
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        public void update(){
+            int newIndex = index + 1;
+            if(isLegal(newIndex)){
+                index = newIndex;
+            } else {
+                index = myEdges.size() + 1;
+            }
+        }
+    }
+
+
+    public class EdgeIteration extends Iteration<int[]>{
+        ArrayList<Edge> myedges;
+        int index;
+        EdgeIteration(ArrayList<Edge> edges){
+            this.myedges = edges;
+            index = 0;
+        }
+
+        @Override
+        public int[] next(){
+            assert(hasNext());
+            int[] wanted = myedges.get(index).edgeEnds;
+            index += 1;
+            return wanted;
+        }
+
+        @Override
+        public boolean hasNext(){
+            return index < myedges.size();
+        }
+    }
+
+    static class Edge {
+        static int possibleID = 1;
+        boolean directed;
+        int[][] info;
+        int[] edgeEnds;
+        int id;
+
+        // for directed edges, edgeEnds is the same as info[0]
+        Edge(boolean directed, int u, int v){
+            this.directed = directed;
+            int[] inOrder = {u, v};
+            edgeEnds = inOrder;
+            this.id = possibleID;
+            possibleID += 1;
+
+            if (directed) {
+                this.info = new int[1][2];
+                this.info[0] = inOrder;
+            } else {
+                this.info = new int[2][2];
+                int[] reverseOrder = {v, u};
+                this.info[0] = inOrder;
+                this.info[1] = reverseOrder;
+            }
+        }
+
+        Integer theOtherVertex(int first){
+            assert(edgeEnds[0] == first || edgeEnds[1] == first);
+            if(first == edgeEnds[0]){
+                return edgeEnds[1];
+            } else {
+                return edgeEnds[0];
+            }
+        }
+
+        @Override
+        public String toString(){
+            String wanted = "[" + edgeEnds[0]
+                    + ", " + edgeEnds[1] + "]";
+            return wanted;
+        }
+
+    }
+
+}
